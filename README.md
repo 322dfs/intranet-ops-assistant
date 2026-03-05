@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 内网运维助手
 
 一个基于FastAPI和DeepSeek API的智能内网运维助手，支持自然语言和Linux命令两种输入方式，可用于服务器管理和监控。
@@ -206,3 +207,7 @@ intranet-ops-assistant/
 - 作者：[Your Name]
 - 邮箱：[your.email@example.com]
 - GitHub：[https://github.com/yourusername/intranet-ops-assistant](https://github.com/yourusername/intranet-ops-assistant)
+=======
+# intranet-ops-assistant
+内网运维助手是一个基于FastAPI和SSH的内网服务器管理工具，通过Web界面实现对多台远程Linux服务器的监控和管理。该系统提供了类似Coze的聊天界面，用户可以通过自然语言指令执行各种运维操作，如查看CPU、内存、磁盘使用情况等。系统支持多机器管理，通过SQLite数据库存储服务器信息。
+>>>>>>> f77735e07d8efe1a00b28e64125f6bbb6ae4f50c
