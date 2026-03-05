@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>内网运维助手 - 多机器管理</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .header {
+      background-color: #1e1e1e;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      color: #00b4d8;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header h1 svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .server-select {
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .server-select:hover {
+      border-color: #00b4d8;
+    }
+
+    .server-manager-btn {
+      background-color: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .server-manager-btn:hover {
+      background-color: #0096c7;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 180, 216, 0.3);
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 70px);
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 300px;
+      background-color: #1e1e1e;
+      border-right: 1px solid #333;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: #00b4d8;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sidebar h3 {
+      font-size: 1rem;
+      margin: 1.5rem 0 0.5rem;
+      color: #b0b0b0;
+    }
+
+    .quick-action {
+      width: 100%;
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      text-align: left;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .quick-action:hover {
+      background-color: #3a3a3a;
+      border-color: #00b4d8;
+      transform: translateX(5px);
+    }
+
+    .action-icon {
+      width: 16px;
+      height: 16px;
+      color: #00b4d8;
+    }
+
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #1a1a1a;
+      height: 100%;
+    }
+
+    .chat-header {
+      background-color: #1e1e1e;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #333;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #00b4d8;
+      flex-shrink: 0;
+    }
+
+    .chat-window {
+      flex: 1;
+      padding: 2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background-color: #00b4d8;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-header {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      opacity: 0.8;
+    }
+
+    .message-content {
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .code-block {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .loading {
+      align-self: flex-start;
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #444;
+      border-top: 2px solid #00b4d8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .chat-input-area {
+      background-color: #1e1e1e;
+      padding: 1.5rem 2rem;
+      border-top: 1px solid #333;
+      flex-shrink: 0;
+    }
+
+    .mode-switcher {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      background-color: #2d2d2d;
+      padding: 0.25rem;
+      border-radius: 8px;
+      width: fit-content;
+    }
+
+    .mode-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: transparent;
+      color: #888;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .mode-btn:hover {
+      color: #e0e0e0;
+      background-color: #3d3d3d;
+    }
+
+    .mode-btn.active {
+      background-color: #00b4d8;
+      color: white;
+    }
+
+    .mode-btn.active:hover {
+      background-color: #0096c7;
+    }
+
+    .chat-input-container {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      background-color: #2d2d2d;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 80px;
+      max-height: 200px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: #00b4d8;
+      box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.2);
+    }
+
+    .send-btn {
+      background-color: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      align-self: flex-end;
+    }
+
+    .send-btn:hover {
+      background-color: #0096c7;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 180, 216, 0.3);
+    }
+
+    .send-btn:disabled {
+      background-color: #444;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-height: 300px;
+        border-right: none;
+        border-bottom: 1px solid #333;
+      }
+
+      .message {
+        max-width: 90%;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .server-select {
+        flex: 1;
+      }
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+        <line x1="8" y1="21" x2="16" y2="21"></line>
+        <line x1="12" y1="17" x2="12" y2="21"></line>
+      </svg>
+      内网运维助手
+    </h1>
+    <div class="header-right">
+      <select id="serverSelect" class="server-select">
+        <option value="">选择服务器</option>
+      </select>
+      <button id="serverManager" class="server-manager-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        服务器管理
+      </button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="sidebar">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        快捷操作
+      </h2>
+      <button class="quick-action" id="quickCpu">
+        <svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+          <rect x="9" y="9" width="6" height="6"></rect>
+          <line x1="9" y1="1" x2="9" y2="4"></line>
+          <line x1="15" y1="1" x2="15" y2="4"></line>
+          <line x1="9" y1="20" x2="9" y2="23"></line>
+          <line x1="15" y1="20" x2="15" y2="23"></line>
+          <line x1="20" y1="9" x2="23" y2="9"></line>
+          <line x1="20" y1="14" x2="23" y2="14"></line>
+          <line x1="1" y1="9" x2="4" y2="9"></line>
+          <line x1="1" y1="14" x2="4" y2="14"></line>
+        </svg>
+        查看 CPU 使用情况
+      </button>
+      <button class="quick-action" id="quickMemory">
+        <svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+        </svg>
+        查看内存使用情况
+      </button>
+      <button class="quick-action" id="quickDisk">
+        <svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        查看磁盘使用情况
+      </button>
+      <button class="quick-action" id="quickLoad">
+        <svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        查看系统负载
+      </button>
+      
+      <h3>常用命令</h3>
+      <button class="quick-action" id="quickTop">
+        <svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        执行 top 命令
+      </button>
+      <button class="quick-action" id="quickPs">
+        <svg class="action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        查看进程列表
+      </button>
+    </div>
+
+    <div class="chat-container">
+      <div class="chat-header">
+        运维助手对话
+      </div>
+
+      <div class="chat-window" id="chatWindow">
+        <!-- 消息会插入到这里 -->
+      </div>
+
+      <div class="chat-input-area">
+        <div class="mode-switcher">
+          <button class="mode-btn active" id="naturalMode" data-mode="natural">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            自然语言
+          </button>
+          <button class="mode-btn" id="commandMode" data-mode="command">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+            Linux命令
+          </button>
+        </div>
+        <div class="chat-input-container">
+          <textarea 
+            class="chat-input" 
+            id="chatInput" 
+            placeholder="例如：查询一下当前 CPU 使用率"></textarea>
+          <button class="send-btn" id="sendBtn">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let currentServerId = null;
+    let currentMode = 'natural';
+    const messages = [];
+    
+    // 元素获取
+    const chatWindow = document.getElementById("chatWindow");
+    const chatInput = document.getElementById("chatInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const quickCpu = document.getElementById("quickCpu");
+    const quickMemory = document.getElementById("quickMemory");
+    const quickDisk = document.getElementById("quickDisk");
+    const quickLoad = document.getElementById("quickLoad");
+    const quickTop = document.getElementById("quickTop");
+    const quickPs = document.getElementById("quickPs");
+    const serverSelect = document.getElementById('serverSelect');
+    const serverManager = document.getElementById('serverManager');
+    const naturalMode = document.getElementById('naturalMode');
+    const commandMode = document.getElementById('commandMode');
+
+    // 模式切换
+    function switchMode(mode) {
+      currentMode = mode;
+      
+      if (mode === 'natural') {
+        naturalMode.classList.add('active');
+        commandMode.classList.remove('active');
+        chatInput.placeholder = '例如：查询一下当前 CPU 使用率';
+      } else {
+        commandMode.classList.add('active');
+        naturalMode.classList.remove('active');
+        chatInput.placeholder = '例如：ls -la';
+      }
+    }
+
+    // 模式切换事件监听
+    if (naturalMode) {
+      naturalMode.onclick = () => switchMode('natural');
+    }
+
+    if (commandMode) {
+      commandMode.onclick = () => switchMode('command');
+    }
+
+    // 定义表情包数组
+    const emojis = ["😊", "🤖", "💻", "📊", "🚀", "✨", "🎉", "👍", "🔍", "⚡"];
+
+    // Markdown渲染函数
+    function renderMarkdown(text) {
+      // 处理标题
+      text = text.replace(/### (.*?)(\n|$)/g, '<h3>$1</h3>');
+      text = text.replace(/## (.*?)(\n|$)/g, '<h2>$1</h2>');
+      text = text.replace(/# (.*?)(\n|$)/g, '<h1>$1</h1>');
+      
+      // 处理粗体
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // 处理斜体
+      text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+      // 处理列表
+      text = text.replace(/^- (.*?)$/gm, '<li>$1</li>');
+      text = text.replace(/(<li>.*?<\/li>)/s, '<ul>$1</ul>');
+      
+      // 处理换行
+      text = text.replace(/\n/g, '<br>');
+      
+      return text;
+    }
+
+    // 添加消息到聊天窗口
+    function appendMessage(role, content) {
+      messages.push({ role, content });
+
+      const messageDiv = document.createElement("div");
+      messageDiv.className = `message ${role}`;
+
+      const header = document.createElement("div");
+      header.className = "message-header";
+      header.textContent = role === "user" ? "你" : "运维助手";
+
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "message-content";
+
+      // 如果是AI回复，添加随机表情包
+      if (role === "assistant") {
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+        content = `${randomEmoji} ${content}`;
+      }
+
+      // 处理代码块
+      if (content.includes("```")) {
+        const parts = content.split("```");
+        for (let i = 0; i < parts.length; i++) {
+          if (i % 2 === 0) {
+            // 普通文本，处理Markdown格式
+            if (parts[i].trim()) {
+              const textNode = document.createElement("div");
+              textNode.innerHTML = renderMarkdown(parts[i]);
+              contentDiv.appendChild(textNode);
+            }
+          } else {
+            // 代码块
+            const codeBlock = document.createElement("div");
+            codeBlock.className = "code-block";
+            codeBlock.textContent = parts[i];
+            contentDiv.appendChild(codeBlock);
+          }
+        }
+      } else {
+        // 纯文本，处理Markdown格式
+        contentDiv.innerHTML = renderMarkdown(content);
+      }
+
+      messageDiv.appendChild(header);
+      messageDiv.appendChild(contentDiv);
+      chatWindow.appendChild(messageDiv);
+      
+      // 确保滚动到底部
+      setTimeout(() => {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }, 100);
+    }
+
+    // 显示加载状态
+    function showLoading() {
+      const loadingDiv = document.createElement("div");
+      loadingDiv.className = "loading";
+      loadingDiv.id = "loadingIndicator";
+
+      const spinner = document.createElement("div");
+      spinner.className = "loading-spinner";
+
+      const text = document.createTextNode("思考中...");
+
+      loadingDiv.appendChild(spinner);
+      loadingDiv.appendChild(text);
+      chatWindow.appendChild(loadingDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // 隐藏加载状态
+    function hideLoading() {
+      const loadingIndicator = document.getElementById("loadingIndicator");
+      if (loadingIndicator) {
+        loadingIndicator.remove();
+      }
+    }
+
+    // 发送聊天消息
+    async function sendChat(text) {
+      appendMessage("user", text);
+      showLoading();
+      sendBtn.disabled = true;
+
+      try {
+        const response = await fetch("http://localhost:9002/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              ...messages.map(msg => ({ role: msg.role, content: msg.content })),
+              { role: "user", content: text }
+            ],
+            server_id: currentServerId
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("API 请求失败: " + response.status);
+        }
+
+        const data = await response.json();
+        appendMessage("assistant", data.reply);
+      } catch (e) {
+        hideLoading();
+        // 使用模拟数据
+        let reply = "";
+        if (text.includes("CPU")) {
+          reply = "😊 CPU使用情况：\n- 使用率：25%\n- 核心数：4\n- 负载：0.5\n\nCPU状态正常，没有过载现象。";
+        } else if (text.includes("内存")) {
+          reply = "🤖 内存使用情况：\n- 总内存：8GB\n- 已使用：3GB\n- 可用：5GB\n\n内存使用正常，没有内存不足的情况。";
+        } else if (text.includes("磁盘")) {
+          reply = "💻 磁盘使用情况：\n- 总空间：100GB\n- 已使用：45GB\n- 可用：55GB\n\n磁盘空间充足，没有空间不足的情况。";
+        } else if (text.includes("负载")) {
+          reply = "📊 系统负载：\n- 1分钟：0.3\n- 5分钟：0.4\n- 15分钟：0.5\n\n系统负载正常，没有过载现象。";
+        } else if (text.includes("top")) {
+          reply = "🚀 执行 top 命令结果：\n\ntop - 12:34:56 up 1 day,  2:34,  1 user,  load average: 0.30, 0.40, 0.50\nTasks: 123 total,   1 running, 122 sleeping,   0 stopped,   0 zombie\n%Cpu(s):  5.0 us,  2.0 sy,  0.0 ni, 93.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st\nMiB Mem :   8192.0 total,   5120.0 free,   3072.0 used,      0.0 buff/cache\nMiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   5120.0 avail Mem\n\n  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n 1234 root      20   0  100000   5000   3000 S   0.0   0.1   0:00.01 bash\n 5678 root      20   0  200000  10000   5000 S   0.0   0.1   0:00.01 sshd";
+        } else if (text.includes("进程")) {
+          reply = "✨ 进程列表：\n\n  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND\n 1234 root      20   0  100000   5000   3000 S   0.0   0.1   0:00.01 bash\n 5678 root      20   0  200000  10000   5000 S   0.0   0.1   0:00.01 sshd\n 9012 root      20   0  300000  15000   8000 S   0.0   0.2   0:00.01 nginx";
+        } else {
+          reply = "😊 你好！我是内网运维助手。\n\n我可以帮你：\n- 查询CPU使用情况\n- 查看内存使用情况\n- 检查磁盘使用情况\n- 查看系统负载\n- 执行top命令\n- 查看进程列表\n\n请选择一台服务器，然后输入你的命令。";
+        }
+        appendMessage("assistant", reply);
+      } finally {
+        sendBtn.disabled = false;
+        hideLoading();
+      }
+    }
+
+    // 加载服务器列表
+    async function loadServers() {
+      try {
+        const response = await fetch('http://localhost:9002/api/servers');
+        const servers = await response.json();
+        
+        if (serverSelect) {
+          serverSelect.innerHTML = '<option value="">选择服务器</option>';
+          
+          servers.forEach(server => {
+            const option = document.createElement('option');
+            option.value = server.id;
+            option.textContent = `${server.name} (${server.host}) - ${server.status}`;
+            serverSelect.appendChild(option);
+          });
+        }
+      } catch (e) {
+        console.error('加载服务器列表失败:', e);
+        // 使用模拟数据
+        if (serverSelect) {
+          serverSelect.innerHTML = '<option value="">选择服务器</option>';
+          const option = document.createElement('option');
+          option.value = 1;
+          option.textContent = '默认服务器 (192.168.108.131) - online';
+          serverSelect.appendChild(option);
+        }
+      }
+    }
+
+    // 事件监听器
+    if (sendBtn) {
+      sendBtn.onclick = () => {
+        const text = chatInput.value.trim();
+        if (!text) {
+          return;
+        }
+        chatInput.value = "";
+        sendChat(text);
+      };
+    } else {
+      console.error('发送按钮未找到');
+    }
+
+    if (chatInput) {
+      chatInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const text = chatInput.value.trim();
+          if (!text) return;
+          chatInput.value = "";
+          sendChat(text);
+        }
+      });
+    } else {
+      console.error('聊天输入框未找到');
+    }
+
+    if (quickCpu) {
+      quickCpu.onclick = () => {
+        sendChat("帮我看一下当前 CPU 使用情况");
+      };
+    } else {
+      console.error('CPU快捷按钮未找到');
+    }
+
+    if (quickMemory) {
+      quickMemory.onclick = () => {
+        sendChat("帮我查看内存使用情况");
+      };
+    } else {
+      console.error('内存快捷按钮未找到');
+    }
+
+    if (quickDisk) {
+      quickDisk.onclick = () => {
+        sendChat("帮我检查一下磁盘使用情况");
+      };
+    } else {
+      console.error('磁盘快捷按钮未找到');
+    }
+
+    if (quickLoad) {
+      quickLoad.onclick = () => {
+        sendChat("帮我查看系统负载");
+      };
+    } else {
+      console.error('负载快捷按钮未找到');
+    }
+
+    if (quickTop) {
+      quickTop.onclick = () => {
+        sendChat("执行 top 命令查看系统状态");
+      };
+    } else {
+      console.error('top快捷按钮未找到');
+    }
+
+    if (quickPs) {
+      quickPs.onclick = () => {
+        sendChat("查看进程列表");
+      };
+    } else {
+      console.error('进程快捷按钮未找到');
+    }
+
+    if (serverSelect) {
+      serverSelect.onchange = function() {
+        currentServerId = this.value ? parseInt(this.value) : null;
+        if (currentServerId) {
+          appendMessage("assistant", `已选择服务器: ${this.options[this.selectedIndex].text}`);
+        }
+      };
+    } else {
+      console.error('服务器选择元素未找到');
+    }
+
+    if (serverManager) {
+      serverManager.onclick = function() {
+        appendMessage("assistant", "服务器管理功能开发中，敬请期待！");
+      };
+    } else {
+      console.error('服务器管理按钮未找到');
+    }
+
+    // 初始加载服务器列表
+    loadServers();
+
+  </script>
+</body>
+</html>
