@@ -2,7 +2,7 @@
 
 一个基于FastAPI和DeepSeek API的智能内网运维助手，支持自然语言和Linux命令两种输入方式，可用于服务器管理和监控。
 
-![33c11b81830e42f8b189c0f0f6b50e9f](file:///C:/Users/beeplux/Pictures/Typedown/33c11b81-830e-42f8-b189-c0f0f6b50e9f.png?msec=1772682132982)
+![系统展示](static/show.png)
 
 ## 功能特性
 
